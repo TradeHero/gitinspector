@@ -29,59 +29,64 @@ DEFAULT_EXTENSIONS = ["java", "c", "cc", "cpp", "h", "hh", "hpp", "py", "glsl", 
 __extensions__ = DEFAULT_EXTENSIONS
 __located_extensions__ = set()
 
+
 def get():
-	return __extensions__
+    return __extensions__
+
 
 def define(string):
-	global __extensions__
-	__extensions__ = string.split(",")
+    global __extensions__
+    __extensions__ = string.split(",")
+
 
 def add_located(string):
-	if len(string) > 0:
-		__located_extensions__.add(string)
+    if len(string) > 0:
+        __located_extensions__.add(string)
+
 
 EXTENSIONS_INFO_TEXT = N_("The extensions below were found in the repository history")
 EXTENSIONS_MARKED_TEXT = N_("(extensions used during statistical analysis are marked)")
 
+
 class Extensions(Outputable):
-	def output_html(self):
-		if __located_extensions__:
-			extensions_xml = "<div><div class=\"box\">"
-			extensions_xml += "<p>{0} {1}.</p><p>".format(_(EXTENSIONS_INFO_TEXT), _(EXTENSIONS_MARKED_TEXT))
+    def output_html(self):
+        if __located_extensions__:
+            extensions_xml = "<div><div class=\"box\">"
+            extensions_xml += "<p>{0} {1}.</p><p>".format(_(EXTENSIONS_INFO_TEXT), _(EXTENSIONS_MARKED_TEXT))
 
-			for i in __located_extensions__:
-				if i in __extensions__:
-					extensions_xml += "<strong>" + i + "</strong>"
-				else:
-					extensions_xml += i
-				extensions_xml += " "
+            for i in __located_extensions__:
+                if i in __extensions__:
+                    extensions_xml += "<strong>" + i + "</strong>"
+                else:
+                    extensions_xml += i
+                extensions_xml += " "
 
-			extensions_xml += "</p></div></div>"
-			print(extensions_xml)
+            extensions_xml += "</p></div></div>"
+            print(extensions_xml)
 
-	def output_text(self):
-		if __located_extensions__:
-			print("\n" + textwrap.fill("{0} {1}:".format(_(EXTENSIONS_INFO_TEXT), _(EXTENSIONS_MARKED_TEXT)),
-			      width=terminal.get_size()[0]))
+    def output_text(self):
+        if __located_extensions__:
+            print("\n" + textwrap.fill("{0} {1}:".format(_(EXTENSIONS_INFO_TEXT), _(EXTENSIONS_MARKED_TEXT)),
+                                       width=terminal.get_size()[0]))
 
-			for i in __located_extensions__:
-				if i in __extensions__:
-					print("[" + terminal.__bold__ + i + terminal.__normal__ + "]", end=" ")
-				else:
-					print (i, end=" ")
-			print("")
+            for i in __located_extensions__:
+                if i in __extensions__:
+                    print("[" + terminal.__bold__ + i + terminal.__normal__ + "]", end=" ")
+                else:
+                    print(i, end=" ")
+            print("")
 
-	def output_xml(self):
-		if __located_extensions__:
-			message_xml = "\t\t<message>" + _(EXTENSIONS_INFO_TEXT) + "</message>\n"
-			used_extensions_xml = ""
-			unused_extensions_xml = ""
+    def output_xml(self):
+        if __located_extensions__:
+            message_xml = "\t\t<message>" + _(EXTENSIONS_INFO_TEXT) + "</message>\n"
+            used_extensions_xml = ""
+            unused_extensions_xml = ""
 
-			for i in __located_extensions__:
-				if i in __extensions__:
-					used_extensions_xml += "\t\t\t<extension>" + i + "</extension>\n"
-				else:
-					unused_extensions_xml += "\t\t\t<extension>" + i + "</extension>\n"
+            for i in __located_extensions__:
+                if i in __extensions__:
+                    used_extensions_xml += "\t\t\t<extension>" + i + "</extension>\n"
+                else:
+                    unused_extensions_xml += "\t\t\t<extension>" + i + "</extension>\n"
 
-			print("\t<extensions>\n" + message_xml + "\t\t<used>\n" + used_extensions_xml + "\t\t</used>\n" +
-			      "\t\t<unused>\n" + unused_extensions_xml + "\t\t</unused>\n" + "\t</extensions>")
+            print("\t<extensions>\n" + message_xml + "\t\t<used>\n" + used_extensions_xml + "\t\t</used>\n" +
+                  "\t\t<unused>\n" + unused_extensions_xml + "\t\t</unused>\n" + "\t</extensions>")

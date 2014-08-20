@@ -18,21 +18,23 @@
 # along with gitinspector. If not, see <http://www.gnu.org/licenses/>.
 
 from __future__ import unicode_literals
+
 try:
-	from urllib.parse import urlencode
+    from urllib.parse import urlencode
 except:
-	from urllib import urlencode
+    from urllib import urlencode
 import format
 import hashlib
 
+
 def get_url(email, size=20):
-	md5hash = hashlib.md5(email.encode("utf-8").lower().strip()).hexdigest()
-	base_url = "http://www.gravatar.com/avatar/" + md5hash
-	params = None
+    md5hash = hashlib.md5(email.encode("utf-8").lower().strip()).hexdigest()
+    base_url = "http://www.gravatar.com/avatar/" + md5hash
+    params = None
 
-	if format.get_selected() == "html":
-		params = {"default": "identicon", "size": size}
-	elif format.get_selected() == "xml":
-		params = {"default": "identicon"}
+    if format.get_selected() == "html":
+        params = {"default": "identicon", "size": size}
+    elif format.get_selected() == "xml":
+        params = {"default": "identicon"}
 
-	return base_url + "?" + urlencode(params)
+    return base_url + "?" + urlencode(params)

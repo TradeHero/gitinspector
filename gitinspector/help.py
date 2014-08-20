@@ -74,5 +74,6 @@ more information.
 gitinspector requires that the git executable is available in your PATH.
 Report gitinspector bugs to gitinspector@ejwa.se.""")
 
+
 def output():
-	print(__doc__.format(sys.argv[0], ",".join(DEFAULT_EXTENSIONS), ",".join(__available_formats__)))
+    print(__doc__.format(sys.argv[0], ",".join(DEFAULT_EXTENSIONS), ",".join(__available_formats__)))

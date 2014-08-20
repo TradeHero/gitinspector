@@ -21,20 +21,22 @@ from __future__ import print_function
 from __future__ import unicode_literals
 import format
 
+
 class Outputable(object):
-	def output_html(self):
-		print(_("HTML output not yet supported in") + " \"" + self.__class__.__name__ + "\".")
+    def output_html(self):
+        print(_("HTML output not yet supported in") + " \"" + self.__class__.__name__ + "\".")
 
-	def output_text(self):
-		print(_("Text output not yet supported in") + " \"" + self.__class__.__name__ + "\".")
+    def output_text(self):
+        print(_("Text output not yet supported in") + " \"" + self.__class__.__name__ + "\".")
 
-	def output_xml(self):
-		print(_("XML output not yet supported in") + " \"" + self.__class__.__name__ + "\".")
+    def output_xml(self):
+        print(_("XML output not yet supported in") + " \"" + self.__class__.__name__ + "\".")
+
 
 def output(outputable):
-	if format.get_selected() == "html" or format.get_selected() == "htmlembedded":
-		outputable.output_html()
-	elif format.get_selected() == "text":
-		outputable.output_text()
-	else:
-		outputable.output_xml()
+    if format.get_selected() == "html" or format.get_selected() == "htmlembedded":
+        outputable.output_html()
+    elif format.get_selected() == "text":
+        outputable.output_text()
+    else:
+        outputable.output_xml()

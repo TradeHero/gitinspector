@@ -39,250 +39,263 @@ import threading
 
 NUM_THREADS = multiprocessing.cpu_count()
 
+
 class BlameEntry:
-	rows = 0
-	skew = 0 # Used when calculating average code age.
-	comments = 0
+    rows = 0
+    skew = 0 # Used when calculating average code age.
+    comments = 0
+
 
 __thread_lock__ = threading.BoundedSemaphore(NUM_THREADS)
 __blame_lock__ = threading.Lock()
 
 AVG_DAYS_PER_MONTH = 30.4167
 
+
 class BlameThread(threading.Thread):
-	def __init__(self, useweeks, changes, blame_string, extension, blames, filename):
-		__thread_lock__.acquire() # Lock controlling the number of threads running
-		threading.Thread.__init__(self)
+    def __init__(self, useweeks, changes, blame_string, extension, blames, filename):
+        __thread_lock__.acquire() # Lock controlling the number of threads running
+        threading.Thread.__init__(self)
 
-		self.useweeks = useweeks
-		self.changes = changes
-		self.blame_string = blame_string
-		self.extension = extension
-		self.blames = blames
-		self.filename = filename
+        self.useweeks = useweeks
+        self.changes = changes
+        self.blame_string = blame_string
+        self.extension = extension
+        self.blames = blames
+        self.filename = filename
 
-	def run(self):
-		git_blame_r = subprocess.Popen(self.blame_string, shell=True, bufsize=1, stdout=subprocess.PIPE).stdout
-		is_inside_comment = False
+    def run(self):
+        git_blame_r = subprocess.Popen(self.blame_string, shell=True, bufsize=1, stdout=subprocess.PIPE).stdout
+        is_inside_comment = False
 
-		for j in git_blame_r.readlines():
-			j = j.decode("utf-8", "replace")
-			if Blame.is_blame_line(j):
-				content = Blame.get_content(j)
-				(comments, is_inside_comment) = comment.handle_comment_block(is_inside_comment, self.extension, content)
+        for j in git_blame_r.readlines():
+            j = j.decode("utf-8", "replace")
+            if Blame.is_blame_line(j):
+                content = Blame.get_content(j)
+                (comments, is_inside_comment) = comment.handle_comment_block(is_inside_comment, self.extension, content)
 
-				if Blame.is_prior(j) and interval.get_since():
-					continue
+                if Blame.is_prior(j) and interval.get_since():
+                    continue
 
-				email = Blame.get_author_email(j)
-				author = self.changes.get_latest_author_by_email(email)
+                email = Blame.get_author_email(j)
+                author = self.changes.get_latest_author_by_email(email)
 
-				__blame_lock__.acquire() # Global lock used to protect calls from here...
+                __blame_lock__.acquire() # Global lock used to protect calls from here...
 
-				if not filtering.set_filtered(author, "author") and not filtering.set_filtered(email, "email"):
-					if self.blames.get((author, self.filename), None) == None:
-						self.blames[(author, self.filename)] = BlameEntry()
+                if not filtering.set_filtered(author, "author") and not filtering.set_filtered(email, "email"):
+                    if self.blames.get((author, self.filename), None) == None:
+                        self.blames[(author, self.filename)] = BlameEntry()
 
-					self.blames[(author, self.filename)].comments += comments
-					self.blames[(author, self.filename)].rows += 1
+                    self.blames[(author, self.filename)].comments += comments
+                    self.blames[(author, self.filename)].rows += 1
 
-					time = Blame.get_time(j)
-					time = datetime.date(int(time[0:4]), int(time[5:7]), int(time[8:10]))
+                    time = Blame.get_time(j)
+                    time = datetime.date(int(time[0:4]), int(time[5:7]), int(time[8:10]))
 
-					if (time - self.changes.first_commit_date).days > 0:
-						self.blames[(author, self.filename)].skew += ((self.changes.last_commit_date - time).days /
-						                                             (7.0 if self.useweeks else AVG_DAYS_PER_MONTH))
+                    if (time - self.changes.first_commit_date).days > 0:
+                        self.blames[(author, self.filename)].skew += ((self.changes.last_commit_date - time).days /
+                                                                      (7.0 if self.useweeks else AVG_DAYS_PER_MONTH))
 
-				__blame_lock__.release() # ...to here.
+                __blame_lock__.release() # ...to here.
 
-		git_blame_r.close()
-		__thread_lock__.release() # Lock controlling the number of threads running
+        git_blame_r.close()
+        __thread_lock__.release() # Lock controlling the number of threads running
+
 
 PROGRESS_TEXT = N_("Checking how many rows belong to each author (Progress): {0:.0f}%")
 
+
 class Blame:
-	def __init__(self, hard, useweeks, changes):
-		self.blames = {}
-		ls_tree_r = subprocess.Popen("git ls-tree --name-only -r " + interval.get_ref(), shell=True, bufsize=1,
-		                             stdout=subprocess.PIPE).stdout
-		lines = ls_tree_r.readlines()
+    def __init__(self, hard, useweeks, changes):
+        self.blames = {}
+        ls_tree_r = subprocess.Popen("git ls-tree --name-only -r " + interval.get_ref(), shell=True, bufsize=1,
+                                     stdout=subprocess.PIPE).stdout
+        lines = ls_tree_r.readlines()
 
-		for i, row in enumerate(lines):
-			row = row.strip().decode("unicode_escape", "ignore")
-			row = row.encode("latin-1", "replace")
-			row = row.decode("utf-8", "replace").strip("\"").strip("'").strip()
+        for i, row in enumerate(lines):
+            row = row.strip().decode("unicode_escape", "ignore")
+            row = row.encode("latin-1", "replace")
+            row = row.decode("utf-8", "replace").strip("\"").strip("'").strip()
 
-			if FileDiff.is_valid_extension(row) and not filtering.set_filtered(FileDiff.get_filename(row)):
-				blame_string = "git blame -e -w {0} ".format("-C -C -M" if hard else "") + \
-				               interval.get_since() + interval.get_ref() + " -- \"" + row + "\""
-				thread = BlameThread(useweeks, changes, blame_string, FileDiff.get_extension(row), self.blames, row.strip())
-				thread.daemon = True
-				thread.start()
+            if FileDiff.is_valid_extension(row) and not filtering.set_filtered(FileDiff.get_filename(row)):
+                blame_string = "git blame -e -w {0} ".format("-C -C -M" if hard else "") + \
+                               interval.get_since() + interval.get_ref() + " -- \"" + row + "\""
+                thread = BlameThread(useweeks, changes, blame_string, FileDiff.get_extension(row), self.blames,
+                                     row.strip())
+                thread.daemon = True
+                thread.start()
 
-				if hard:
-					Blame.output_progress(i, len(lines))
+                if hard:
+                    Blame.output_progress(i, len(lines))
 
-		# Make sure all threads have completed.
-		for i in range(0, NUM_THREADS):
-			__thread_lock__.acquire()
+        # Make sure all threads have completed.
+        for i in range(0, NUM_THREADS):
+            __thread_lock__.acquire()
 
-	@staticmethod
-	def output_progress(pos, length):
-		if sys.stdout.isatty() and format.is_interactive_format():
-			terminal.clear_row()
-			print(_(PROGRESS_TEXT).format(100 * pos / length), end="")
-			sys.stdout.flush()
+    @staticmethod
+    def output_progress(pos, length):
+        if sys.stdout.isatty() and format.is_interactive_format():
+            terminal.clear_row()
+            print(_(PROGRESS_TEXT).format(100 * pos / length), end="")
+            sys.stdout.flush()
 
-	@staticmethod
-	def is_blame_line(string):
-		return string.find(" (") != -1
+    @staticmethod
+    def is_blame_line(string):
+        return string.find(" (") != -1
 
-	@staticmethod
-	def is_prior(string):
-		return string[0] == "^"
+    @staticmethod
+    def is_prior(string):
+        return string[0] == "^"
 
-	@staticmethod
-	def get_author_email(string):
-		author_email = re.search(" \((.*?)\d\d\d\d-\d\d-\d\d", string)
-		return author_email.group(1).strip().lstrip("<").rstrip(">")
+    @staticmethod
+    def get_author_email(string):
+        author_email = re.search(" \((.*?)\d\d\d\d-\d\d-\d\d", string)
+        return author_email.group(1).strip().lstrip("<").rstrip(">")
 
-	@staticmethod
-	def get_content(string):
-		content = re.search(" \d+\)(.*)", string)
-		return content.group(1).lstrip()
+    @staticmethod
+    def get_content(string):
+        content = re.search(" \d+\)(.*)", string)
+        return content.group(1).lstrip()
 
-	@staticmethod
-	def get_stability(author, blamed_rows, changes):
-		if author in changes.get_authorinfo_list():
-			return 100.0 * blamed_rows / changes.get_authorinfo_list()[author].insertions
+    @staticmethod
+    def get_stability(author, blamed_rows, changes):
+        if author in changes.get_authorinfo_list():
+            return 100.0 * blamed_rows / changes.get_authorinfo_list()[author].insertions
 
-		return 100
+        return 100
 
-	@staticmethod
-	def get_time(string):
-		time = re.search(" \(.*?(\d\d\d\d-\d\d-\d\d)", string)
-		return time.group(1).strip()
+    @staticmethod
+    def get_time(string):
+        time = re.search(" \(.*?(\d\d\d\d-\d\d-\d\d)", string)
+        return time.group(1).strip()
 
-	def get_summed_blames(self):
-		summed_blames = {}
-		for i in self.blames.items():
-			if summed_blames.get(i[0][0], None) == None:
-				summed_blames[i[0][0]] = BlameEntry()
+    def get_summed_blames(self):
+        summed_blames = {}
+        for i in self.blames.items():
+            if summed_blames.get(i[0][0], None) == None:
+                summed_blames[i[0][0]] = BlameEntry()
 
-			summed_blames[i[0][0]].rows += i[1].rows
-			summed_blames[i[0][0]].skew += i[1].skew
-			summed_blames[i[0][0]].comments += i[1].comments
+            summed_blames[i[0][0]].rows += i[1].rows
+            summed_blames[i[0][0]].skew += i[1].skew
+            summed_blames[i[0][0]].comments += i[1].comments
 
-		return summed_blames
+        return summed_blames
+
 
 __blame__ = None
 
-def get(hard, useweeks, changes):
-	global __blame__
-	if __blame__ == None:
-		__blame__ = Blame(hard, useweeks, changes)
 
-	return __blame__
+def get(hard, useweeks, changes):
+    global __blame__
+    if __blame__ == None:
+        __blame__ = Blame(hard, useweeks, changes)
+
+    return __blame__
+
 
 BLAME_INFO_TEXT = N_("Below are the number of rows from each author that have survived and are still "
                      "intact in the current revision")
 
+
 class BlameOutput(Outputable):
-	def __init__(self, hard, useweeks):
-		if format.is_interactive_format():
-			print("")
+    def __init__(self, hard, useweeks):
+        if format.is_interactive_format():
+            print("")
 
-		self.hard = hard
-		self.useweeks = useweeks
-		self.changes = changes.get(hard)
-		get(self.hard, self.useweeks, self.changes)
-		Outputable.__init__(self)
+        self.hard = hard
+        self.useweeks = useweeks
+        self.changes = changes.get(hard)
+        get(self.hard, self.useweeks, self.changes)
+        Outputable.__init__(self)
 
-	def output_html(self):
-		blame_xml = "<div><div class=\"box\">"
-		blame_xml += "<p>" + _(BLAME_INFO_TEXT) + ".</p><div><table id=\"blame\" class=\"git\">"
-		blame_xml += "<thead><tr> <th>{0}</th> <th>{1}</th> <th>{2}</th> <th>{3}</th> <th>{4}</th> </tr></thead>".format(
-		             _("Author"), _("Rows"), _("Stability"), _("Age"), _("% in comments"))
-		blame_xml += "<tbody>"
-		chart_data = ""
-		blames = sorted(__blame__.get_summed_blames().items())
-		total_blames = 0
+    def output_html(self):
+        blame_xml = "<div><div class=\"box\">"
+        blame_xml += "<p>" + _(BLAME_INFO_TEXT) + ".</p><div><table id=\"blame\" class=\"git\">"
+        blame_xml += "<thead><tr> <th>{0}</th> <th>{1}</th> <th>{2}</th> <th>{3}</th> <th>{4}</th> </tr></thead>".format(
+            _("Author"), _("Rows"), _("Stability"), _("Age"), _("% in comments"))
+        blame_xml += "<tbody>"
+        chart_data = ""
+        blames = sorted(__blame__.get_summed_blames().items())
+        total_blames = 0
 
-		for i in blames:
-			total_blames += i[1].rows
+        for i in blames:
+            total_blames += i[1].rows
 
-		for i, entry in enumerate(blames):
-			work_percentage = str("{0:.2f}".format(100.0 * entry[1].rows / total_blames))
-			blame_xml += "<tr " + ("class=\"odd\">" if i % 2 == 1 else ">")
+        for i, entry in enumerate(blames):
+            work_percentage = str("{0:.2f}".format(100.0 * entry[1].rows / total_blames))
+            blame_xml += "<tr " + ("class=\"odd\">" if i % 2 == 1 else ">")
 
-			if format.get_selected() == "html":
-				author_email = self.changes.get_latest_email_by_author(entry[0])
-				blame_xml += "<td><img src=\"{0}\"/>{1}</td>".format(gravatar.get_url(author_email), entry[0])
-			else:
-				blame_xml += "<td>" + entry[0] + "</td>"
+            if format.get_selected() == "html":
+                author_email = self.changes.get_latest_email_by_author(entry[0])
+                blame_xml += "<td><img src=\"{0}\"/>{1}</td>".format(gravatar.get_url(author_email), entry[0])
+            else:
+                blame_xml += "<td>" + entry[0] + "</td>"
 
-			blame_xml += "<td>" + str(entry[1].rows) + "</td>"
-			blame_xml += "<td>" + ("{0:.1f}".format(Blame.get_stability(entry[0], entry[1].rows, self.changes)) + "</td>")
-			blame_xml += "<td>" + "{0:.1f}".format(float(entry[1].skew) / entry[1].rows) + "</td>"
-			blame_xml += "<td>" + "{0:.2f}".format(100.0 * entry[1].comments / entry[1].rows) + "</td>"
-			blame_xml += "<td style=\"display: none\">" + work_percentage + "</td>"
-			blame_xml += "</tr>"
-			chart_data += "{{label: \"{0}\", data: {1}}}".format(entry[0], work_percentage)
+            blame_xml += "<td>" + str(entry[1].rows) + "</td>"
+            blame_xml += "<td>" + (
+            "{0:.1f}".format(Blame.get_stability(entry[0], entry[1].rows, self.changes)) + "</td>")
+            blame_xml += "<td>" + "{0:.1f}".format(float(entry[1].skew) / entry[1].rows) + "</td>"
+            blame_xml += "<td>" + "{0:.2f}".format(100.0 * entry[1].comments / entry[1].rows) + "</td>"
+            blame_xml += "<td style=\"display: none\">" + work_percentage + "</td>"
+            blame_xml += "</tr>"
+            chart_data += "{{label: \"{0}\", data: {1}}}".format(entry[0], work_percentage)
 
-			if blames[-1] != entry:
-				chart_data += ", "
+            if blames[-1] != entry:
+                chart_data += ", "
 
-		blame_xml += "<tfoot><tr> <td colspan=\"5\">&nbsp;</td> </tr></tfoot></tbody></table>"
-		blame_xml += "<div class=\"chart\" id=\"blame_chart\"></div></div>"
-		blame_xml += "<script type=\"text/javascript\">"
-		blame_xml += "    blame_plot = $.plot($(\"#blame_chart\"), [{0}], {{".format(chart_data)
-		blame_xml += "        series: {"
-		blame_xml += "            pie: {"
-		blame_xml += "                innerRadius: 0.4,"
-		blame_xml += "                show: true,"
-		blame_xml += "                combine: {"
-		blame_xml += "                    threshold: 0.01,"
-		blame_xml += "                    label: \"" + _("Minor Authors") + "\""
-		blame_xml += "                }"
-		blame_xml += "            }"
-		blame_xml += "        }, grid: {"
-		blame_xml += "            hoverable: true"
-		blame_xml += "        }"
-		blame_xml += "    });"
-		blame_xml += "</script></div></div>"
+        blame_xml += "<tfoot><tr> <td colspan=\"5\">&nbsp;</td> </tr></tfoot></tbody></table>"
+        blame_xml += "<div class=\"chart\" id=\"blame_chart\"></div></div>"
+        blame_xml += "<script type=\"text/javascript\">"
+        blame_xml += "    blame_plot = $.plot($(\"#blame_chart\"), [{0}], {{".format(chart_data)
+        blame_xml += "        series: {"
+        blame_xml += "            pie: {"
+        blame_xml += "                innerRadius: 0.4,"
+        blame_xml += "                show: true,"
+        blame_xml += "                combine: {"
+        blame_xml += "                    threshold: 0.01,"
+        blame_xml += "                    label: \"" + _("Minor Authors") + "\""
+        blame_xml += "                }"
+        blame_xml += "            }"
+        blame_xml += "        }, grid: {"
+        blame_xml += "            hoverable: true"
+        blame_xml += "        }"
+        blame_xml += "    });"
+        blame_xml += "</script></div></div>"
 
-		print(blame_xml)
+        print(blame_xml)
 
-	def output_text(self):
-		if sys.stdout.isatty() and format.is_interactive_format():
-			terminal.clear_row()
+    def output_text(self):
+        if sys.stdout.isatty() and format.is_interactive_format():
+            terminal.clear_row()
 
-		print(textwrap.fill(_(BLAME_INFO_TEXT) + ":", width=terminal.get_size()[0]) + "\n")
-		terminal.printb(_("Author").ljust(21) + _("Rows").rjust(10) + _("Stability").rjust(15) + _("Age").rjust(13) + _("% in comments").rjust(20))
+        print(textwrap.fill(_(BLAME_INFO_TEXT) + ":", width=terminal.get_size()[0]) + "\n")
+        terminal.printb(_("Author").ljust(21) + _("Rows").rjust(10) + _("Stability").rjust(15) + _("Age").rjust(13) + _(
+            "% in comments").rjust(20))
 
-		for i in sorted(__blame__.get_summed_blames().items()):
-			print(i[0].ljust(20)[0:20], end=" ")
-			print(str(i[1].rows).rjust(10), end=" ")
-			print("{0:.1f}".format(Blame.get_stability(i[0], i[1].rows, self.changes)).rjust(14), end=" ")
-			print("{0:.1f}".format(float(i[1].skew) / i[1].rows).rjust(12), end=" ")
-			print("{0:.2f}".format(100.0 * i[1].comments / i[1].rows).rjust(19))
+        for i in sorted(__blame__.get_summed_blames().items()):
+            print(i[0].ljust(20)[0:20], end=" ")
+            print(str(i[1].rows).rjust(10), end=" ")
+            print("{0:.1f}".format(Blame.get_stability(i[0], i[1].rows, self.changes)).rjust(14), end=" ")
+            print("{0:.1f}".format(float(i[1].skew) / i[1].rows).rjust(12), end=" ")
+            print("{0:.2f}".format(100.0 * i[1].comments / i[1].rows).rjust(19))
 
-	def output_xml(self):
-		message_xml = "\t\t<message>" + _(BLAME_INFO_TEXT) + "</message>\n"
-		blame_xml = ""
+    def output_xml(self):
+        message_xml = "\t\t<message>" + _(BLAME_INFO_TEXT) + "</message>\n"
+        blame_xml = ""
 
-		for i in sorted(__blame__.get_summed_blames().items()):
-			author_email = self.changes.get_latest_email_by_author(i[0])
+        for i in sorted(__blame__.get_summed_blames().items()):
+            author_email = self.changes.get_latest_email_by_author(i[0])
 
-			name_xml = "\t\t\t\t<name>" + i[0] + "</name>\n"
-			gravatar_xml = "\t\t\t\t<gravatar>" + gravatar.get_url(author_email) + "</gravatar>\n"
-			rows_xml = "\t\t\t\t<rows>" + str(i[1].rows) + "</rows>\n"
-			stability_xml = ("\t\t\t\t<stability>" + "{0:.1f}".format(Blame.get_stability(i[0], i[1].rows,
-			                 self.changes)) + "</stability>\n")
-			age_xml = ("\t\t\t\t<age>" + "{0:.1f}".format(float(i[1].skew) / i[1].rows) + "</age>\n")
-			percentage_in_comments_xml = ("\t\t\t\t<percentage-in-comments>" + "{0:.2f}".format(100.0 * i[1].comments / i[1].rows) +
-			                              "</percentage-in-comments>\n")
-			blame_xml += ("\t\t\t<author>\n" + name_xml + gravatar_xml + rows_xml + stability_xml + age_xml +
-			             percentage_in_comments_xml + "\t\t\t</author>\n")
+            name_xml = "\t\t\t\t<name>" + i[0] + "</name>\n"
+            gravatar_xml = "\t\t\t\t<gravatar>" + gravatar.get_url(author_email) + "</gravatar>\n"
+            rows_xml = "\t\t\t\t<rows>" + str(i[1].rows) + "</rows>\n"
+            stability_xml = ("\t\t\t\t<stability>" + "{0:.1f}".format(Blame.get_stability(i[0], i[1].rows,
+                                                                                          self.changes)) + "</stability>\n")
+            age_xml = ("\t\t\t\t<age>" + "{0:.1f}".format(float(i[1].skew) / i[1].rows) + "</age>\n")
+            percentage_in_comments_xml = (
+            "\t\t\t\t<percentage-in-comments>" + "{0:.2f}".format(100.0 * i[1].comments / i[1].rows) +
+            "</percentage-in-comments>\n")
+            blame_xml += ("\t\t\t<author>\n" + name_xml + gravatar_xml + rows_xml + stability_xml + age_xml +
+                          percentage_in_comments_xml + "\t\t\t</author>\n")
 
-		print("\t<blame>\n" + message_xml + "\t\t<authors>\n" + blame_xml + "\t\t</authors>\n\t</blame>")
+        print("\t<blame>\n" + message_xml + "\t\t<authors>\n" + blame_xml + "\t\t</authors>\n\t</blame>")

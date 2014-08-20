@@ -21,35 +21,38 @@ import os
 import subprocess
 import sys
 
+
 def get_basedir():
-	if hasattr(sys,'frozen'): # exists when running via py2exe
-		return sys.prefix
-	else:
-		return os.path.dirname(os.path.realpath(__file__))
+    if hasattr(sys, 'frozen'): # exists when running via py2exe
+        return sys.prefix
+    else:
+        return os.path.dirname(os.path.realpath(__file__))
+
 
 __git_basedir__ = None
 
+
 def get_basedir_git():
-	global __git_basedir__
+    global __git_basedir__
 
-	if not __git_basedir__:
-		isbare = subprocess.Popen("git rev-parse --is-bare-repository", shell=True, bufsize=1,
-		                          stdout=subprocess.PIPE).stdout
-		isbare = isbare.readlines()
-		isbare = (isbare[0].decode("utf-8", "replace").strip() == "true")
-		absolute_path = ""
+    if not __git_basedir__:
+        isbare = subprocess.Popen("git rev-parse --is-bare-repository", shell=True, bufsize=1,
+                                  stdout=subprocess.PIPE).stdout
+        isbare = isbare.readlines()
+        isbare = (isbare[0].decode("utf-8", "replace").strip() == "true")
+        absolute_path = ""
 
-		if isbare:
-			absolute_path = subprocess.Popen("git rev-parse --git-dir", shell=True, bufsize=1,
-		                                 stdout=subprocess.PIPE).stdout
-		else:
-			absolute_path = subprocess.Popen("git rev-parse --show-toplevel", shell=True, bufsize=1,
-			                                 stdout=subprocess.PIPE).stdout
+        if isbare:
+            absolute_path = subprocess.Popen("git rev-parse --git-dir", shell=True, bufsize=1,
+                                             stdout=subprocess.PIPE).stdout
+        else:
+            absolute_path = subprocess.Popen("git rev-parse --show-toplevel", shell=True, bufsize=1,
+                                             stdout=subprocess.PIPE).stdout
 
-		absolute_path = absolute_path.readlines()
-		if len(absolute_path) == 0:
-			sys.exit(_("Unable to determine absolute path of git repository."))
+        absolute_path = absolute_path.readlines()
+        if len(absolute_path) == 0:
+            sys.exit(_("Unable to determine absolute path of git repository."))
 
-		__git_basedir__ = absolute_path[0].decode("utf-8", "replace").strip()
+        __git_basedir__ = absolute_path[0].decode("utf-8", "replace").strip()
 
-	return __git_basedir__
+    return __git_basedir__

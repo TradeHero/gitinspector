@@ -26,24 +26,27 @@ import tempfile
 
 __cloned_path__ = None
 
+
 def create(url):
-	if url.startswith("file://") or url.startswith("git://") or url.startswith("http://") or \
-	   url.startswith("https://") or url.startswith("ssh://"):
-		global __cloned_path__
+    if url.startswith("file://") or url.startswith("git://") or url.startswith("http://") or \
+            url.startswith("https://") or url.startswith("ssh://"):
+        global __cloned_path__
 
-		location = tempfile.mkdtemp(suffix=".gitinspector")
-		git_clone = subprocess.Popen("git clone {0} {1}".format(url, location), shell=True, bufsize=1, stdout=sys.stderr)
-		git_clone.wait()
+        location = tempfile.mkdtemp(suffix=".gitinspector")
+        git_clone = subprocess.Popen("git clone {0} {1}".format(url, location), shell=True, bufsize=1,
+                                     stdout=sys.stderr)
+        git_clone.wait()
 
-		if git_clone.returncode != 0:
-			sys.exit(git_clone.returncode)
+        if git_clone.returncode != 0:
+            sys.exit(git_clone.returncode)
 
-		__cloned_path__ = location
-		return location
-	return url
+        __cloned_path__ = location
+        return location
+    return url
+
 
 def delete():
-	global __cloned_path__
+    global __cloned_path__
 
-	if __cloned_path__:
-		shutil.rmtree(__cloned_path__, ignore_errors=True)
+    if __cloned_path__:
+        shutil.rmtree(__cloned_path__, ignore_errors=True)
