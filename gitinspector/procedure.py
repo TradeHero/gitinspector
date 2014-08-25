@@ -1,4 +1,5 @@
 import subprocess
+import interval
 
 HIDE_ERR_OUTPUT = " >/dev/null 2>&1"
 
@@ -61,6 +62,13 @@ def sort_branches_by_last_update():
 
 
 def eligible_for_inspection(commit):
+    since_date_time = interval.get_since()
+    if since_date_time:
+        since_date_time = since_date_time.split("=")
+        since_date_time = since_date_time[1]
+        since_date_time = since_date_time.replace("\"", "")
+    else:
+        since_date_time = "2014-08-24"
     return get_last_commit_date(commit) > '2014-08-24'
 
 def switch_to_branch(branch_name):
