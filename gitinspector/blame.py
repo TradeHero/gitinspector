@@ -193,8 +193,7 @@ def get(hard, useweeks, changes):
     return __blame__
 
 
-BLAME_INFO_TEXT = N_("Below are the number of rows from each author that have survived and are still "
-                     "intact in the current revision")
+BLAME_INFO_TEXT = N_("Authors that have survived and are still intact in the current revision")
 
 
 class BlameOutput(Outputable):
