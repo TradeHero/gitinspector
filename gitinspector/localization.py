@@ -50,9 +50,13 @@ def init():
             #Fix for non-POSIX-compliant systems (Windows et al.).
             if os.getenv('LANG') is None:
                 lang = locale.getdefaultlocale()
-                os.environ['LANG'] = lang[0]
 
-            filename = basedir.get_basedir() + "/translations/messages_%s.mo" % lang[0][0:2]
+                if lang[0] is None:
+                    os.environ['LANG'] = "en"
+                else:
+                    os.environ['LANG'] = lang[0]
+
+            filename = basedir.get_basedir() + "/translations/messages_%s.mo" % os.environ['LANG'][0:2]
 
             try:
                 __translation__ = gettext.GNUTranslations(open(filename, "rb"))
