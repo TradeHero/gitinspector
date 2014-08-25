@@ -46,7 +46,7 @@ import sys
 import terminal
 import timeline
 import version
-
+import procedure
 
 class Runner:
     def __init__(self):
@@ -71,6 +71,10 @@ class Runner:
         os.chdir(self.repo)
         absolute_path = basedir.get_basedir_git()
         os.chdir(absolute_path)
+
+        procedure.remove_inspection_branches()
+        procedure.create_branches_for_inspection()
+
         format.output_header()
         outputable.output(changes.ChangesOutput(self.hard))
 
