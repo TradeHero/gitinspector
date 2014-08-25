@@ -27,8 +27,6 @@ localization.init()
 
 import atexit
 import basedir
-import blame
-import changes
 import clone
 import config
 import extensions
@@ -37,16 +35,15 @@ import format
 import help
 import interval
 import getopt
-import metrics
 import os
 import optval
-import outputable
-import responsibilities
 import sys
 import terminal
-import timeline
 import version
+import procedure
+import subprocess
 
+command_line = "python " + " ".join(sys.argv[:])
 
 class Runner:
     def __init__(self):
@@ -72,27 +69,23 @@ class Runner:
         absolute_path = basedir.get_basedir_git()
         os.chdir(absolute_path)
 
+        procedure.remove_inspection_branches()
+        procedure.create_branches_for_inspection()
+
         format.output_header()
-        outputable.output(changes.ChangesOutput(self.hard))
 
-        if changes.get(self.hard).get_commits():
-            outputable.output(blame.BlameOutput(self.hard, self.useweeks))
+        sorted_branches = procedure.sort_branches_by_last_update()
 
-            if self.timeline:
-                outputable.output(timeline.Timeline(changes.get(self.hard), self.useweeks))
-
-            if self.include_metrics:
-                outputable.output(metrics.Metrics())
-
-            if self.responsibilities:
-                outputable.output(responsibilities.ResponsibilitiesOutput(self.hard, self.useweeks))
-
-            outputable.output(filtering.Filtering())
-
-            if self.list_file_types:
-                outputable.output(extensions.Extensions())
-
-        format.output_footer()
+        for (commit, branch_name) in sorted_branches:
+            if procedure.eligible_for_inspection(commit):
+                if procedure.switch_to_branch(branch_name):
+                    output = \
+                        subprocess.Popen(command_line.replace("main.py", "gitinspector.py"),
+                                         shell=True, bufsize=1, stdout=subprocess.PIPE).stdout
+                    print(output.read())
+            else:
+                print("\n\n ==> All eligible branches has been inspected!")
+                break
         os.chdir(previous_directory)
 
 
