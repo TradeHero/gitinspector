@@ -84,7 +84,7 @@ class Runner:
                                          shell=True, bufsize=1, stdout=subprocess.PIPE).stdout
                     print(output.read())
             else:
-                print("\n\n ==> All eligible branches has been inspected!")
+                print("\n\n ==> All eligible branches have been inspected!")
                 break
         os.chdir(previous_directory)
 
