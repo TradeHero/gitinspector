@@ -1,6 +1,7 @@
 import subprocess
 import interval
 from datetime import datetime
+from datetime import timedelta
 
 HIDE_ERR_OUTPUT = " >/dev/null 2>&1"
 
@@ -69,7 +70,7 @@ def eligible_for_inspection(commit):
         since_date_time = since_date_time[1]
         since_date_time = since_date_time.replace("\"", "")
     else:
-        since_date_time = (datetime.now() - datetime.timedelta(days=7)).strftime("%Y-%m-%d")
+        since_date_time = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
     return get_commit_date(commit) > since_date_time
 
 def switch_to_branch(branch_name):
