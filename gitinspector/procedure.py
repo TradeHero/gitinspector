@@ -1,5 +1,6 @@
 import subprocess
 import interval
+from datetime import datetime
 
 HIDE_ERR_OUTPUT = " >/dev/null 2>&1"
 
@@ -35,7 +36,7 @@ def remove_inspection_branches():
                                           shell=True, bufsize=1, stdout=subprocess.PIPE).stdout
     output.readlines()
 
-def get_last_commit_date(commit):
+def get_commit_date(commit):
     output = \
         subprocess.Popen("git log -1 -s --format=%ci " + commit + " | cat",
                          shell=True, bufsize=1, stdout=subprocess.PIPE).stdout
@@ -68,8 +69,8 @@ def eligible_for_inspection(commit):
         since_date_time = since_date_time[1]
         since_date_time = since_date_time.replace("\"", "")
     else:
-        since_date_time = "2014-08-24"
-    return get_last_commit_date(commit) > '2014-08-24'
+        since_date_time = (datetime.now() - datetime.timedelta(days=7)).strftime("%Y-%m-%d")
+    return get_commit_date(commit) > since_date_time
 
 def switch_to_branch(branch_name):
     git_cleanup_and_reset()
