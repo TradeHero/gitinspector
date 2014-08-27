@@ -17,17 +17,22 @@ def create_branches_for_inspection():
     git_cleanup_and_reset()
 
     print("Fetch all branches ...")
-    output = subprocess.Popen("git fetch --all" + HIDE_ERR_OUTPUT, shell=True, bufsize=1, stdout=subprocess.PIPE).stdout
-    output.readlines()
+    err_output = subprocess.Popen("git fetch --all", shell=True, bufsize=1, stdout=subprocess.PIPE).stdout
+    err_output.readlines()
 
     print("Creating branches for inspection ...")
-    output = \
+    process = \
         subprocess.Popen("for remote in `git branch -r `; do " +
                          "   if [[ $remote != *HEAD* && $remote == origin* ]]; then " +
                          "      git checkout -b ${remote/origin\//insp\/} $remote; " +
                          "   fi; " +
-                         "done" + HIDE_ERR_OUTPUT, shell=True, bufsize=1, stdout=subprocess.PIPE).stdout
-    output.readlines()
+                         "done", shell=True, bufsize=1, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+    process_stderr = process.stderr
+    err_output = process_stderr.read()
+    if ".lock" in err_output:
+        print("\n\nPlease ensure that there is not another git process is running on the same repo!")
+        print("Delete .git/index.lock file in the current folder and rerun the application again.")
+        exit()
 
 
 def remove_inspection_branches():
