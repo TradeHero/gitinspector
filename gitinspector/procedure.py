@@ -1,11 +1,13 @@
 import os
 import subprocess
+import threading
 import interval
 from datetime import datetime
 from datetime import timedelta
+from os.path import expanduser
 
 HIDE_ERR_OUTPUT = " >/dev/null 2>&1"
-COMMIT_LIST_FILE = ".gi_commit"
+COMMIT_LIST_FILE = expanduser("~/.gi_commit")
 
 
 def git_cleanup_and_reset():
@@ -104,15 +106,20 @@ def prepare_commit_log():
 
 
 __processed_commits__ = []
+__processed_commits_lock__ = threading.Lock()
 
 
 def get_processed_commits():
-    if os.path.isfile(COMMIT_LIST_FILE) and len(__processed_commits__) == 0:
-        processed_commits = []
-        with open(COMMIT_LIST_FILE, "rb") as f:
-            processed_commits.extend(f.readlines())
+    global __processed_commits__
+    try:
+        __processed_commits_lock__.acquire()
+        if os.path.isfile(COMMIT_LIST_FILE) and len(__processed_commits__) == 0:
+            with open(COMMIT_LIST_FILE, "rb") as f:
+                __processed_commits__.extend(f.read().split('\n'))
 
-    return __processed_commits__
+        return __processed_commits__
+    finally:
+        __processed_commits_lock__.release()
 
 
 def append_process_commit(commit):
