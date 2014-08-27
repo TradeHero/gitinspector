@@ -59,6 +59,7 @@ class Runner:
         self.grading = False
         self.timeline = False
         self.useweeks = False
+        self.show_blame_output = False
 
     def output(self):
         if not self.localize_output:
@@ -76,7 +77,8 @@ class Runner:
         outputable.output(changes.ChangesOutput(self.hard))
 
         if changes.get(self.hard).get_commits():
-            outputable.output(blame.BlameOutput(self.hard, self.useweeks))
+            if self.show_blame_output:
+                outputable.output(blame.BlameOutput(self.hard, self.useweeks))
 
             if self.timeline:
                 outputable.output(timeline.Timeline(changes.get(self.hard), self.useweeks))
@@ -179,6 +181,8 @@ def main():
                 __run__.useweeks = True
             elif o == "--weeks":
                 __run__.useweeks = optval.get_boolean_argument(a)
+            elif o == "-bo": # use blame output
+                __run__.show_blame_output = True
             elif o in ("-x", "--exclude"):
                 if clear_x_on_next_pass:
                     clear_x_on_next_pass = False
