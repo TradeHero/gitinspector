@@ -70,6 +70,7 @@ class Runner:
 
         os.chdir(previous_directory)
 
+        procedure.output_final_report()
         format.output_footer()
 
 def __check_python_version__():

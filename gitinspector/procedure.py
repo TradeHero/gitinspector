@@ -139,6 +139,17 @@ def append_process_commit(commit):
         f.write(commit + "\n")
 
 
+__report__ = {}
+
+class Report:
+    def __init__(self, string):
+        report_line = string.split()
+
+        if report_line.__len__() >= 3:
+            self.commits = int(report_line[0])
+            self.insertions = int(report_line[1])
+            self.deletions = int(report_line[2])
+
 # TODO following is a little hack to use subprocess output for gathering data
 # TODO What we should do is to either find a proper way for communication between
 # TODO parent and subprocess or merge the processes into only one
@@ -147,5 +158,24 @@ def append_process_commit(commit):
 def process_branch_output(output):
     report_position = output.find("\nAuthor")
     if report_position >= 0:
+        global __report__
         output = output[report_position:]
-        print output
+        lines = output.split('\n')
+        # one line for the \n, another is the line with "Author"
+        lines = lines[2:]
+        for line in lines:
+            author = line[:20].strip()
+            if len(author) > 0:
+                single_report = Report(line[20:])
+                if __report__.has_key(author):
+                    author_report = __report__[author]
+                    author_report.commits += single_report.commits
+                    author_report.insertions += single_report.insertions
+                    author_report.deletions += single_report.deletions
+                else:
+                    __report__[author] = single_report
+
+def output_final_report():
+    print("{0}\t\t\t{1}\t\t{2}\t\t{3}".format("Author", "Commits", "Insertions", "Deletions"))
+    for author, report in __report__.iteritems():
+        print("{0}\t\t\t\t{1}\t\t{2}\t\t{3}".format(author, report.commits, report.insertions, report.deletions))
