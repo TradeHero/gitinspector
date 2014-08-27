@@ -40,6 +40,11 @@ def create_branches_for_inspection():
 
 
 def remove_inspection_branches():
+    print("Switch back to master branch ...")
+    output = subprocess.Popen("git checkout master" + HIDE_ERR_OUTPUT,
+                              shell=True, bufsize=1, stdout=subprocess.PIPE).stdout
+    output.readlines()
+
     print("Removing all branches for inspection ...")
     output = subprocess.Popen("for remote in `git branch -r `; do git branch -D ${remote/origin\//insp\/}; done"
                               + HIDE_ERR_OUTPUT,
