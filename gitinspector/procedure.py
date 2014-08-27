@@ -14,6 +14,7 @@ def git_cleanup_and_reset():
     output = subprocess.Popen("git clean -fd && git reset HEAD --hard" + HIDE_ERR_OUTPUT,
                               shell=True, bufsize=1, stdout=subprocess.PIPE).stdout
     output.readlines()
+    switch_to_master_branch()
 
 
 def create_branches_for_inspection():
@@ -39,11 +40,15 @@ def create_branches_for_inspection():
         exit()
 
 
-def remove_inspection_branches():
+def switch_to_master_branch():
     print("Switch back to master branch ...")
     output = subprocess.Popen("git checkout master" + HIDE_ERR_OUTPUT,
                               shell=True, bufsize=1, stdout=subprocess.PIPE).stdout
     output.readlines()
+
+
+def remove_inspection_branches():
+    switch_to_master_branch()
 
     print("Removing all branches for inspection ...")
     output = subprocess.Popen("for remote in `git branch -r `; do git branch -D ${remote/origin\//insp\/}; done"
