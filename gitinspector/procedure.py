@@ -21,7 +21,7 @@ def create_branches_for_inspection():
     git_cleanup_and_reset()
 
     print("Fetch all branches ...")
-    err_output = subprocess.Popen("git fetch --all", shell=True, bufsize=1, stdout=subprocess.PIPE).stdout
+    err_output = subprocess.Popen("git fetch --all --prune", shell=True, bufsize=1, stdout=subprocess.PIPE).stdout
     err_output.readlines()
 
     print("Creating branches for inspection ...")
