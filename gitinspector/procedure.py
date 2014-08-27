@@ -7,6 +7,7 @@ from datetime import timedelta
 HIDE_ERR_OUTPUT = " >/dev/null 2>&1"
 COMMIT_LIST_FILE = ".gi_commit"
 
+
 def git_cleanup_and_reset():
     output = subprocess.Popen("git clean -fd && git reset HEAD --hard" + HIDE_ERR_OUTPUT,
                               shell=True, bufsize=1, stdout=subprocess.PIPE).stdout
@@ -40,8 +41,9 @@ def remove_inspection_branches():
     print("Removing all branches for inspection ...")
     output = subprocess.Popen("for remote in `git branch -r `; do git branch -D ${remote/origin\//insp\/}; done"
                               + HIDE_ERR_OUTPUT,
-                                          shell=True, bufsize=1, stdout=subprocess.PIPE).stdout
+                              shell=True, bufsize=1, stdout=subprocess.PIPE).stdout
     output.readlines()
+
 
 def get_commit_date(commit):
     output = \
@@ -49,6 +51,7 @@ def get_commit_date(commit):
                          shell=True, bufsize=1, stdout=subprocess.PIPE).stdout
     line = output.readline()
     return line
+
 
 def sort_branches_by_last_update():
     print("Sorting branches by last update time ...")
@@ -79,6 +82,7 @@ def eligible_for_inspection(commit):
         since_date_time = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
     return get_commit_date(commit) > since_date_time
 
+
 def switch_to_branch(branch_name):
     git_cleanup_and_reset()
 
@@ -91,8 +95,27 @@ def switch_to_branch(branch_name):
 
 
 def remove_commit_log():
-    os.remove(COMMIT_LIST_FILE)
+    if os.path.isfile(COMMIT_LIST_FILE):
+        os.remove(COMMIT_LIST_FILE)
 
 
 def prepare_commit_log():
     remove_commit_log()
+
+
+__processed_commits__ = []
+
+
+def get_processed_commits():
+    if os.path.isfile(COMMIT_LIST_FILE) and len(__processed_commits__) == 0:
+        processed_commits = []
+        with open(COMMIT_LIST_FILE, "rb") as f:
+            processed_commits.extend(f.readlines())
+
+    return __processed_commits__
+
+
+def append_process_commit(commit):
+    __processed_commits__.append(commit)
+    with open(COMMIT_LIST_FILE, "a") as f:
+        f.write(commit + "\n")

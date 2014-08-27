@@ -29,6 +29,7 @@ import gravatar
 import interval
 import os
 import subprocess
+import procedure
 import terminal
 import textwrap
 
@@ -130,7 +131,7 @@ class Changes:
                 self.authors_by_email[email] = author
 
             if Commit.is_commit_line(j) or i is lines[-1]:
-                if found_valid_extension:
+                if found_valid_extension and commit.sha not in procedure.get_processed_commits():
                     self.commits.append(commit)
 
                 found_valid_extension = False

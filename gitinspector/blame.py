@@ -33,6 +33,7 @@ import multiprocessing
 import re
 import subprocess
 import sys
+import procedure
 import terminal
 import textwrap
 import threading
@@ -107,30 +108,33 @@ PROGRESS_TEXT = N_("Checking how many rows belong to each author (Progress): {0:
 
 class Blame:
     def __init__(self, hard, useweeks, changes):
-        self.blames = {}
-        ls_tree_r = subprocess.Popen("git ls-tree --name-only -r " + interval.get_ref(), shell=True, bufsize=1,
-                                     stdout=subprocess.PIPE).stdout
-        lines = ls_tree_r.readlines()
+        if interval.get_ref() not in procedure.get_processed_commits():
+            procedure.append_process_commit(interval.get_ref())
 
-        for i, row in enumerate(lines):
-            row = row.strip().decode("unicode_escape", "ignore")
-            row = row.encode("latin-1", "replace")
-            row = row.decode("utf-8", "replace").strip("\"").strip("'").strip()
+            self.blames = {}
+            ls_tree_r = subprocess.Popen("git ls-tree --name-only -r " + interval.get_ref(), shell=True, bufsize=1,
+                                         stdout=subprocess.PIPE).stdout
+            lines = ls_tree_r.readlines()
 
-            if FileDiff.is_valid_extension(row) and not filtering.set_filtered(FileDiff.get_filename(row)):
-                blame_string = "git blame -e -w {0} ".format("-C -C -M" if hard else "") + \
-                               interval.get_since() + interval.get_ref() + " -- \"" + row + "\""
-                thread = BlameThread(useweeks, changes, blame_string, FileDiff.get_extension(row), self.blames,
-                                     row.strip())
-                thread.daemon = True
-                thread.start()
+            for i, row in enumerate(lines):
+                row = row.strip().decode("unicode_escape", "ignore")
+                row = row.encode("latin-1", "replace")
+                row = row.decode("utf-8", "replace").strip("\"").strip("'").strip()
 
-                if hard:
-                    Blame.output_progress(i, len(lines))
+                if FileDiff.is_valid_extension(row) and not filtering.set_filtered(FileDiff.get_filename(row)):
+                    blame_string = "git blame -e -w {0} ".format("-C -C -M" if hard else "") + \
+                                   interval.get_since() + interval.get_ref() + " -- \"" + row + "\""
+                    thread = BlameThread(useweeks, changes, blame_string, FileDiff.get_extension(row), self.blames,
+                                         row.strip())
+                    thread.daemon = True
+                    thread.start()
 
-        # Make sure all threads have completed.
-        for i in range(0, NUM_THREADS):
-            __thread_lock__.acquire()
+                    if hard:
+                        Blame.output_progress(i, len(lines))
+
+            # Make sure all threads have completed.
+            for i in range(0, NUM_THREADS):
+                __thread_lock__.acquire()
 
     @staticmethod
     def output_progress(pos, length):
