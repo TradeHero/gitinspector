@@ -62,13 +62,15 @@ class Runner:
             if procedure.eligible_for_inspection(commit):
                 if procedure.switch_to_branch(branch_name):
                     output = subprocess.Popen(self.command_line, shell=True, bufsize=1, stdout=subprocess.PIPE).stdout
-                    print(output.read())
+                    output = output.read()
+                    procedure.process_branch_output(output)
             else:
                 print("\n\n ==> All eligible branches have been inspected!")
                 break
 
         os.chdir(previous_directory)
 
+        format.output_footer()
 
 def __check_python_version__():
     if sys.version_info < (2, 6):

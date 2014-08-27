@@ -14,12 +14,13 @@ def git_cleanup_and_reset():
     output = subprocess.Popen("git clean -fd && git reset HEAD --hard" + HIDE_ERR_OUTPUT,
                               shell=True, bufsize=1, stdout=subprocess.PIPE).stdout
     output.readlines()
-    switch_to_master_branch()
 
 
 def create_branches_for_inspection():
     print("Cleaning current branch ...")
     git_cleanup_and_reset()
+
+    switch_to_master_branch()
 
     print("Fetch all branches ...")
     err_output = subprocess.Popen("git fetch --all --prune", shell=True, bufsize=1, stdout=subprocess.PIPE).stdout
@@ -136,3 +137,15 @@ def append_process_commit(commit):
     __processed_commits__.append(commit)
     with open(COMMIT_LIST_FILE, "a") as f:
         f.write(commit + "\n")
+
+
+# TODO following is a little hack to use subprocess output for gathering data
+# TODO What we should do is to either find a proper way for communication between
+# TODO parent and subprocess or merge the processes into only one
+#
+# Why the subprocess output is parsed like following? Check this method out ${link changes#output_text}
+def process_branch_output(output):
+    report_position = output.find("\nAuthor")
+    if report_position >= 0:
+        output = output[report_position:]
+        print output

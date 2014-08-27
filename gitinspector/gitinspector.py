@@ -73,7 +73,6 @@ class Runner:
         absolute_path = basedir.get_basedir_git()
         os.chdir(absolute_path)
 
-        format.output_header()
         outputable.output(changes.ChangesOutput(self.hard))
 
         if changes.get(self.hard).get_commits():
@@ -94,7 +93,6 @@ class Runner:
             if self.list_file_types:
                 outputable.output(extensions.Extensions())
 
-        format.output_footer()
         os.chdir(previous_directory)
 
 
