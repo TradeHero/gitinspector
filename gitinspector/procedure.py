@@ -1,10 +1,11 @@
+import os
 import subprocess
 import interval
 from datetime import datetime
 from datetime import timedelta
 
 HIDE_ERR_OUTPUT = " >/dev/null 2>&1"
-
+COMMIT_LIST_FILE = ".gi_commit"
 
 def git_cleanup_and_reset():
     output = subprocess.Popen("git clean -fd && git reset HEAD --hard" + HIDE_ERR_OUTPUT,
@@ -87,3 +88,11 @@ def switch_to_branch(branch_name):
                          shell=True, bufsize=1, stdout=subprocess.PIPE).stdout
     lines = output.readlines()
     return True
+
+
+def remove_commit_log():
+    os.remove(COMMIT_LIST_FILE)
+
+
+def prepare_commit_log():
+    remove_commit_log()

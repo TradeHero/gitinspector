@@ -20,6 +20,7 @@
 
 from __future__ import print_function
 from __future__ import unicode_literals
+import atexit
 
 import localization
 
@@ -32,6 +33,7 @@ import sys
 import terminal
 import procedure
 import subprocess
+
 
 class Runner:
     def __init__(self):
@@ -48,6 +50,7 @@ class Runner:
         absolute_path = basedir.get_basedir_git()
         os.chdir(absolute_path)
 
+        procedure.prepare_commit_log()
         procedure.remove_inspection_branches()
         procedure.create_branches_for_inspection()
 
@@ -64,8 +67,8 @@ class Runner:
                 print("\n\n ==> All eligible branches have been inspected!")
                 break
 
-        procedure.remove_inspection_branches()
         os.chdir(previous_directory)
+
 
 def __check_python_version__():
     if sys.version_info < (2, 6):
@@ -84,3 +87,9 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+@atexit.register
+def cleanup():
+    procedure.remove_commit_log()
+    procedure.remove_inspection_branches()
