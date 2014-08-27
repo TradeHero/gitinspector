@@ -131,7 +131,7 @@ class Changes:
                 self.authors_by_email[email] = author
 
             if Commit.is_commit_line(j) or i is lines[-1]:
-                if found_valid_extension and commit.sha not in procedure.get_processed_commits():
+                if found_valid_extension:
                     self.commits.append(commit)
 
                 found_valid_extension = False
@@ -161,6 +161,10 @@ class Changes:
     def __modify_authorinfo__(self, authors, key, commit):
         if authors.get(key, None) == None:
             authors[key] = AuthorInfo()
+
+        if commit.sha in procedure.get_processed_commits():
+            return
+        procedure.append_process_commit(commit.sha)
 
         if commit.get_filediffs():
             authors[key].commits += 1
