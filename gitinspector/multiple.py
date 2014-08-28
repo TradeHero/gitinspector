@@ -20,13 +20,14 @@
 
 from __future__ import print_function
 from __future__ import unicode_literals
-import atexit
 import getopt
-import filtering
-import interval
+from datetime import date, timedelta
+import subprocess
 
+import filtering
 import localization
 import optval
+
 
 localization.init()
 
@@ -35,48 +36,42 @@ import format
 import os
 import sys
 import terminal
-import procedure
-from procedure import debug_print
-import subprocess
 
 
 class Runner:
     def __init__(self):
         self.repo = "."
         self.command_line = "python " + " ".join(sys.argv[:])
-        self.command_line = self.command_line.replace("main.py", "gitinspector.py")
+        self.command_line = self.command_line.replace("multiple.py", "main.py")
+        self.weeks = 3
 
     def output(self):
         terminal.skip_escapes(not sys.stdout.isatty())
         terminal.set_stdout_encoding()
-        previous_directory = os.getcwd()
 
         os.chdir(self.repo)
         absolute_path = basedir.get_basedir_git()
         os.chdir(absolute_path)
 
-        procedure.prepare_commit_log()
-        procedure.remove_inspection_branches()
-        procedure.create_branches_for_inspection()
+        today = date.today()
+        offset = today.weekday() % 7 + 1
+        this_sunday = today - timedelta(days = offset)
+        self.render_report(this_sunday, today)
 
-        format.output_header()
+        for i in range(1, self.weeks + 1):
+            since = this_sunday - timedelta(days = i * 7)
+            until = since + timedelta(days = 7)
+            self.render_report(since, until)
 
-        sorted_branches = procedure.sort_branches_by_last_update()
 
-        for (commit, branch_name) in sorted_branches:
-            if procedure.eligible_for_inspection(commit):
-                if procedure.switch_to_branch(branch_name):
-                    output = subprocess.Popen(self.command_line, shell=True, bufsize=1, stdout=subprocess.PIPE).stdout
-                    output = output.read()
-                    procedure.process_branch_output(output)
-            else:
-                debug_print("\n\n ==> All eligible branches have been inspected!")
-                break
+    def render_report(self, since, until):
+        output = subprocess.Popen(self.command_line + " --since={0} --until={1}".format(since, until), shell=True, bufsize=1, stdout=subprocess.PIPE).stdout
+        output = output.read()
+        print(output)
 
-        os.chdir(previous_directory)
 
-        procedure.output_final_report()
-        format.output_footer()
+    def set_weeks_to_inspect(self, token):
+        self.weeks = int(token)
 
 def __check_python_version__():
     if sys.version_info < (2, 6):
@@ -98,17 +93,13 @@ def main():
                                                                             "responsibilities:true",
                                                                             "since=", "grading:true", "timeline:true",
                                                                             "until=", "version",
-                                                                            "weeks:true", "ws="])
+                                                                            "ws="])
         for arg in __args__:
             __run__.repo = arg
 
-        clear_x_on_next_pass = True
-
         for o, a in __opts__:
-            if o == "--since":
-                interval.set_since(a)
-            elif o == "--until":
-                interval.set_until(a)
+            if o == "--ws":
+                __run__.set_weeks_to_inspect(a)
 
         __check_python_version__()
         __run__.output()
@@ -120,9 +111,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-@atexit.register
-def cleanup():
-    procedure.remove_commit_log()
-    procedure.remove_inspection_branches()

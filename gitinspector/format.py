@@ -113,8 +113,9 @@ def output_header():
         print("\t<repository>" + os.path.basename(basedir.get_basedir_git()) + "</repository>")
         print("\t<report-date>" + time.strftime("%Y/%m/%d") + "</report-date>")
     else:
-        print(textwrap.fill(_("Statistical information for the repository '{0}' was gathered on {1}.").format(
-            os.path.basename(basedir.get_basedir_git()), localization.get_date()), width=terminal.get_size()[0]))
+        # print(textwrap.fill(_("Statistical information for the repository '{0}' was gathered on {1}.").format(
+        #     os.path.basename(basedir.get_basedir_git()), localization.get_date()), width=terminal.get_size()[0]))
+        print("")
 
 
 def output_footer():

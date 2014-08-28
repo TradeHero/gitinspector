@@ -118,7 +118,7 @@ def main():
                                                                             "responsibilities:true",
                                                                             "since=", "grading:true", "timeline:true",
                                                                             "until=", "version",
-                                                                            "weeks:true"])
+                                                                            "weeks:true", "ws="])
         for arg in __args__:
             __run__.repo = arg
 
