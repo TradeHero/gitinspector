@@ -1,3 +1,4 @@
+from __future__ import print_function
 import os
 import subprocess
 import threading
@@ -176,6 +177,12 @@ def process_branch_output(output):
                     __report__[author] = single_report
 
 def output_final_report():
-    print("{0}\t\t\t{1}\t\t{2}\t\t{3}".format("Author", "Commits", "Insertions", "Deletions"))
+    print(_("Author").ljust(21) + "\t" + _("Commits").rjust(13) + "\t" + _("Insertions").rjust(14) + "\t" +
+                            _("Deletions").rjust(15))
+
     for author, report in __report__.iteritems():
-        print("{0}\t\t\t\t{1}\t\t{2}\t\t{3}".format(author, report.commits, report.insertions, report.deletions))
+        print(author.ljust(20)[0:20], end="\t")
+        print(str(report.commits).rjust(13), end="\t")
+        print(str(report.insertions).rjust(13), end="\t")
+        print(str(report.deletions).rjust(14), end="\t")
+        print("\n".rstrip())
