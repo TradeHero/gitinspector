@@ -22,6 +22,7 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import localization
+import procedure
 
 localization.init()
 
@@ -106,6 +107,8 @@ def main():
     terminal.check_terminal_encoding()
     terminal.set_stdin_encoding()
     argv = terminal.convert_command_line_to_utf8()
+
+    procedure.DEBUG = True
     __run__ = Runner()
 
     try:

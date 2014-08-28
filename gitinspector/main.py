@@ -21,8 +21,12 @@
 from __future__ import print_function
 from __future__ import unicode_literals
 import atexit
+import getopt
+import filtering
+import interval
 
 import localization
+import optval
 
 localization.init()
 
@@ -32,6 +36,7 @@ import os
 import sys
 import terminal
 import procedure
+from procedure import debug_print
 import subprocess
 
 
@@ -65,7 +70,7 @@ class Runner:
                     output = output.read()
                     procedure.process_branch_output(output)
             else:
-                print("\n\n ==> All eligible branches have been inspected!")
+                debug_print("\n\n ==> All eligible branches have been inspected!")
                 break
 
         os.chdir(previous_directory)
@@ -82,11 +87,36 @@ def __check_python_version__():
 def main():
     terminal.check_terminal_encoding()
     terminal.set_stdin_encoding()
+    argv = terminal.convert_command_line_to_utf8()
+
     __run__ = Runner()
 
-    __check_python_version__()
-    __run__.output()
+    try:
+        __opts__, __args__ = optval.gnu_getopt(argv[1:], "f:F:hHlLmrTwx:", ["exclude=", "file-types=", "format=",
+                                                                            "hard:true", "help", "list-file-types:true",
+                                                                            "localize-output:true", "metrics:true",
+                                                                            "responsibilities:true",
+                                                                            "since=", "grading:true", "timeline:true",
+                                                                            "until=", "version",
+                                                                            "weeks:true"])
+        for arg in __args__:
+            __run__.repo = arg
 
+        clear_x_on_next_pass = True
+
+        for o, a in __opts__:
+            if o == "--since":
+                interval.set_since(a)
+            elif o == "--until":
+                interval.set_until(a)
+
+        __check_python_version__()
+        __run__.output()
+    except (
+        filtering.InvalidRegExpError, format.InvalidFormatError, optval.InvalidOptionArgument, getopt.error) as exception:
+        print(sys.argv[0], "\b:", exception.msg, file=sys.stderr)
+        print(_("Try `{0} --help' for more information.").format(sys.argv[0]), file=sys.stderr)
+        sys.exit(2)
 
 if __name__ == "__main__":
     main()

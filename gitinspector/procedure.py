@@ -9,7 +9,10 @@ from os.path import expanduser
 
 HIDE_ERR_OUTPUT = " >/dev/null 2>&1"
 COMMIT_LIST_FILE = expanduser("~/.gi_commit")
+DEBUG = False
 
+__since_date_time__ = ""
+__until_date_time__ = ""
 
 def git_cleanup_and_reset():
     output = subprocess.Popen("git clean -fd && git reset HEAD --hard" + HIDE_ERR_OUTPUT,
@@ -18,16 +21,16 @@ def git_cleanup_and_reset():
 
 
 def create_branches_for_inspection():
-    print("Cleaning current branch ...")
+    debug_print("Cleaning current branch ...")
     git_cleanup_and_reset()
 
     switch_to_master_branch()
 
-    print("Fetch all branches ...")
+    debug_print("Fetch all branches ...")
     err_output = subprocess.Popen("git fetch --all --prune", shell=True, bufsize=1, stdout=subprocess.PIPE).stdout
     err_output.readlines()
 
-    print("Creating branches for inspection ...")
+    debug_print("Creating branches for inspection ...")
     process = \
         subprocess.Popen("for remote in `git branch -r `; do " +
                          "   if [[ $remote != *HEAD* && $remote == origin* ]]; then " +
@@ -43,7 +46,7 @@ def create_branches_for_inspection():
 
 
 def switch_to_master_branch():
-    print("Switch back to master branch ...")
+    debug_print("Switch back to master branch ...")
     output = subprocess.Popen("git checkout master" + HIDE_ERR_OUTPUT,
                               shell=True, bufsize=1, stdout=subprocess.PIPE).stdout
     output.readlines()
@@ -52,7 +55,7 @@ def switch_to_master_branch():
 def remove_inspection_branches():
     switch_to_master_branch()
 
-    print("Removing all branches for inspection ...")
+    debug_print("Removing all branches for inspection ...")
     output = subprocess.Popen("for remote in `git branch -r `; do git branch -D ${remote/origin\//insp\/}; done"
                               + HIDE_ERR_OUTPUT,
                               shell=True, bufsize=1, stdout=subprocess.PIPE).stdout
@@ -68,7 +71,7 @@ def get_commit_date(commit):
 
 
 def sort_branches_by_last_update():
-    print("Sorting branches by last update time ...")
+    debug_print("Sorting branches by last update time ...")
     output = \
         subprocess.Popen("git for-each-ref --sort=-committerdate refs/heads/|grep insp",
                          shell=True, bufsize=1, stdout=subprocess.PIPE).stdout
@@ -87,20 +90,33 @@ def sort_branches_by_last_update():
 
 
 def eligible_for_inspection(commit):
-    since_date_time = interval.get_since()
-    if since_date_time:
-        since_date_time = since_date_time.split("=")
-        since_date_time = since_date_time[1]
-        since_date_time = since_date_time.replace("\"", "")
+    global __since_date_time__
+    global __until_date_time__
+
+    __since_date_time__ = interval.get_since()
+    if __since_date_time__:
+        __since_date_time__ = __since_date_time__.split("=")
+        __since_date_time__ = __since_date_time__[1]
+        __since_date_time__ = __since_date_time__.replace("\"", "")
     else:
-        since_date_time = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
-    return get_commit_date(commit) > since_date_time
+        __since_date_time__ = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
+
+    __until_date_time__ = interval.get_until()
+
+    if __until_date_time__:
+        __until_date_time__ = __until_date_time__.split("=")
+        __until_date_time__ = __until_date_time__[1]
+        __until_date_time__ = __until_date_time__.replace("\"", "")
+    else:
+        __until_date_time__ = datetime.now().strftime("%Y-%m-%d")
+
+    return get_commit_date(commit) > __since_date_time__
 
 
 def switch_to_branch(branch_name):
     git_cleanup_and_reset()
 
-    print("\n============ Inspecting " + branch_name)
+    debug_print("\n============ Inspecting " + branch_name)
     output = \
         subprocess.Popen("git checkout -f " + branch_name + HIDE_ERR_OUTPUT,
                          shell=True, bufsize=1, stdout=subprocess.PIPE).stdout
@@ -177,6 +193,7 @@ def process_branch_output(output):
                     __report__[author] = single_report
 
 def output_final_report():
+    print(_("Report from {0} to {1}".format(__since_date_time__, __until_date_time__)))
     print(_("Author").ljust(21) + "\t" + _("Commits").rjust(13) + "\t" + _("Insertions").rjust(14) + "\t" +
                             _("Deletions").rjust(15))
 
@@ -186,3 +203,7 @@ def output_final_report():
         print(str(report.insertions).rjust(13), end="\t")
         print(str(report.deletions).rjust(14), end="\t")
         print("\n".rstrip())
+
+def debug_print(s):
+    if DEBUG:
+        print(s)
