@@ -3,16 +3,21 @@ import os
 import subprocess
 import threading
 import interval
-from datetime import datetime
+import shelve
+
+from datetime import datetime, date
 from datetime import timedelta
 from os.path import expanduser
 
 HIDE_ERR_OUTPUT = " >/dev/null 2>&1"
 COMMIT_LIST_FILE = expanduser("~/.gi_commit")
+DB_FILE = expanduser("~/.gi_db")
+
 DEBUG = False
 
 __since_date_time__ = ""
 __until_date_time__ = ""
+
 
 def git_cleanup_and_reset():
     output = subprocess.Popen("git clean -fd && git reset HEAD --hard" + HIDE_ERR_OUTPUT,
@@ -101,6 +106,9 @@ def eligible_for_inspection(commit):
     else:
         __since_date_time__ = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
 
+    __since_date_time__ = __since_date_time__.strip()
+
+
     __until_date_time__ = interval.get_until()
 
     if __until_date_time__:
@@ -109,6 +117,8 @@ def eligible_for_inspection(commit):
         __until_date_time__ = __until_date_time__.replace("\"", "")
     else:
         __until_date_time__ = datetime.now().strftime("%Y-%m-%d")
+
+    __until_date_time__ = __until_date_time__.strip()
 
     return get_commit_date(commit) > __since_date_time__
 
@@ -158,6 +168,7 @@ def append_process_commit(commit):
 
 __report__ = {}
 
+
 class Report:
     def __init__(self, string):
         report_line = string.split()
@@ -166,6 +177,10 @@ class Report:
             self.commits = int(report_line[0])
             self.insertions = int(report_line[1])
             self.deletions = int(report_line[2])
+
+    def to_array(self):
+        return [self.commits, self.insertions, self.deletions]
+
 
 # TODO following is a little hack to use subprocess output for gathering data
 # TODO What we should do is to either find a proper way for communication between
@@ -192,10 +207,11 @@ def process_branch_output(output):
                 else:
                     __report__[author] = single_report
 
+
 def output_final_report():
     print(_("Report from {0} to {1}".format(__since_date_time__, __until_date_time__)))
     print(_("Author").ljust(21) + "\t" + _("Commits").rjust(13) + "\t" + _("Insertions").rjust(14) + "\t" +
-                            _("Deletions").rjust(15))
+          _("Deletions").rjust(15))
 
     for author, report in __report__.iteritems():
         print(author.ljust(20)[0:20], end="\t")
@@ -203,6 +219,66 @@ def output_final_report():
         print(str(report.insertions).rjust(13), end="\t")
         print(str(report.deletions).rjust(14), end="\t")
         print("\n".rstrip())
+
+        db = shelve.open(DB_FILE)
+
+        if db.has_key(author):
+            author_table = db[author]
+            author_table[__since_date_time__] = report.to_array()
+            db[author] = author_table
+        else:
+            db[author] = {__since_date_time__: report.to_array()}
+        db.close()
+
+
+def output_to_db():
+    db = shelve.open(DB_FILE)
+    for author, report in __report__.iteritems():
+
+        if db.has_key(author):
+            author_table = db[author]
+            author_table[__since_date_time__] = report.to_array()
+            db[author] = author_table
+        else:
+            db[author] = {__since_date_time__: report.to_array()}
+    db.close()
+
+
+def format_statistic(commits, insertions, deletions):
+    return commits.rjust(13) + "\t" + insertions.rjust(14) + "\t" + deletions.rjust(15) + "\t||\t"
+
+
+def output_final_report_in_one_block(ws):
+    today = date.today()
+    offset = today.weekday() % 7 + 1
+    this_sunday = today - timedelta(days=offset)
+
+    duration_str = _("==========").ljust(21) + "\t"
+    for week in range(0, ws+1):
+        sunday_begin = this_sunday - timedelta(weeks=week)
+        sunday_end = this_sunday - timedelta(weeks=week-1)
+        duration_str += format_statistic(_(sunday_begin), _("--->"), _(sunday_end))
+    print(duration_str)
+
+    header_str = _("Author").ljust(21) + "\t"
+    for i in range(0, ws+1):
+        header_str += format_statistic(_("Commits"), _("Insertions"), _("Deletions"))
+    print(header_str)
+
+    db = shelve.open(DB_FILE)
+    for author in db.keys():
+        report_line = _(author).ljust(21) + "\t"
+        report = db[author]
+        for week in range(0, ws+1):
+            sunday = this_sunday - timedelta(weeks=week)
+            if not report.has_key(str(sunday)):
+                report_line += format_statistic(_("x"), _("x"), _("x"))
+            else:
+                statistic = report[str(sunday)]
+                report_line += format_statistic(str(statistic[0]), str(statistic[1]), str(statistic[2]))
+        print(report_line)
+    db.close()
+
 
 def debug_print(s):
     if DEBUG:

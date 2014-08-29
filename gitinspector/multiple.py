@@ -27,6 +27,7 @@ import subprocess
 import filtering
 import localization
 import optval
+import procedure
 
 
 localization.init()
@@ -63,6 +64,7 @@ class Runner:
             until = since + timedelta(days = 7)
             self.render_report(since, until)
 
+        procedure.output_final_report_in_one_block(self.weeks)
 
     def render_report(self, since, until):
         output = subprocess.Popen(self.command_line + " --since={0} --until={1}".format(since, until), shell=True, bufsize=1, stdout=subprocess.PIPE).stdout
