@@ -69,8 +69,7 @@ class Runner:
     def render_report(self, since, until):
         output = subprocess.Popen(self.command_line + " --since={0} --until={1}".format(since, until), shell=True, bufsize=1, stdout=subprocess.PIPE).stdout
         output = output.read()
-        print(output)
-
+        # print(output)
 
     def set_weeks_to_inspect(self, token):
         self.weeks = int(token)
