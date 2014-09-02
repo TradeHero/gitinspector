@@ -36,12 +36,12 @@ def create_branches_for_inspection():
     err_output.readlines()
 
     debug_print("Creating branches for inspection ...")
+    command_line = "for remote in `git branch -r `; do" \
+                   " if [[ $remote != *HEAD* && $remote == origin* ]]; then" \
+                   " git checkout -b ${remote/origin\//insp\/} $remote;" \
+                   " fi; done"
     process = \
-        subprocess.Popen("for remote in `git branch -r `; do " +
-                         "   if [[ $remote != *HEAD* && $remote == origin* ]]; then " +
-                         "      git checkout -b ${remote/origin\//insp\/} $remote; " +
-                         "   fi; " +
-                         "done", shell=True, bufsize=1, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
+        subprocess.Popen(command_line, shell=True, bufsize=1, stderr=subprocess.PIPE, stdout=subprocess.PIPE)
     process_stderr = process.stderr
     err_output = process_stderr.read()
     if ".lock" in err_output:
