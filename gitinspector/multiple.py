@@ -23,6 +23,7 @@ from __future__ import unicode_literals
 import getopt
 from datetime import date, timedelta
 import subprocess
+import atexit
 
 import filtering
 import localization
@@ -85,6 +86,8 @@ def main():
     terminal.set_stdin_encoding()
     argv = terminal.convert_command_line_to_utf8()
 
+    # remove temp db which use for inter-process result
+    procedure.remove_temp_db()
     __run__ = Runner()
 
     try:
@@ -112,3 +115,8 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+@atexit.register
+def cleanup():
+    procedure.remove_temp_db()

@@ -138,6 +138,9 @@ def remove_commit_log():
     if os.path.isfile(COMMIT_LIST_FILE):
         os.remove(COMMIT_LIST_FILE)
 
+def remove_temp_db():
+    if os.path.isfile(DB_FILE):
+        os.remove(DB_FILE)
 
 def prepare_commit_log():
     remove_commit_log()
