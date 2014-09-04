@@ -128,8 +128,12 @@ def convert_command_line_to_utf8():
     try:
         argv = []
 
+        encoding = sys.stdin.encoding
+        if encoding is None:
+            encoding = sys.getdefaultencoding()
+
         for arg in sys.argv:
-            argv.append(arg.decode(sys.stdin.encoding, "replace"))
+            argv.append(arg.decode(encoding, "replace"))
 
         return argv
     except AttributeError:
