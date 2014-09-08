@@ -279,7 +279,7 @@ def output_final_report_in_one_block(ws):
         for week in range(0, ws+1):
             sunday = this_sunday - timedelta(weeks=week)
             if not report.has_key(str(sunday)):
-                report_line += format_header(_("x"), _("x"), _("x"), _("x"))
+                report_line += format_header(_("0"), _("0"), _("0"), _("0"))
             else:
                 statistic = report[str(sunday)]
                 report_line += format_statistic(str(statistic[0]), str(statistic[1]), str(statistic[2]),
