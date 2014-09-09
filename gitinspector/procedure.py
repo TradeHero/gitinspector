@@ -248,11 +248,12 @@ def output_to_db():
 
 
 def format_statistic(commits, insertions, deletions, net):
-    return commits.rjust(13) + "\t" + insertions.rjust(14) + "\t" + deletions.rjust(15) + "\t" + net.rjust(16) + "\t||\t"
+    return net.rjust(16) + "\t||\t"
+    # return commits.rjust(13) + "\t" + insertions.rjust(14) + "\t" + deletions.rjust(15) + "\t" + net.rjust(16) + "\t||\t"
 
 def format_header(title1, title2, title3, title4 = ""):
-    return title1.rjust(13) + "\t" + title2.rjust(14) + "\t" + title3.rjust(15) + "\t" + \
-           title4.rjust(16) + "\t||\t"
+    return title4.rjust(16) + "\t||\t"
+    # return title1.rjust(13) + "\t" + title2.rjust(14) + "\t" + title3.rjust(15) + "\t" + title4.rjust(16) + "\t||\t"
 
 
 def output_final_report_in_one_block(ws):
@@ -264,7 +265,7 @@ def output_final_report_in_one_block(ws):
     for week in range(0, ws+1):
         sunday_begin = this_sunday - timedelta(weeks=week)
         sunday_end = this_sunday - timedelta(weeks=week-1)
-        duration_str += format_header(_(sunday_begin), _("--->"), _(sunday_end))
+        duration_str += format_header(None, None, None, _(sunday_begin) + _("->") + _(sunday_end))
     print(duration_str)
 
     header_str = _("Author").ljust(21) + "\t"
@@ -279,7 +280,7 @@ def output_final_report_in_one_block(ws):
         for week in range(0, ws+1):
             sunday = this_sunday - timedelta(weeks=week)
             if not report.has_key(str(sunday)):
-                report_line += format_header(_("0"), _("0"), _("0"), _("0"))
+                report_line += format_header(_("0"), _("0"), _("0"), ("0"))
             else:
                 statistic = report[str(sunday)]
                 report_line += format_statistic(str(statistic[0]), str(statistic[1]), str(statistic[2]),
