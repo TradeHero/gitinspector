@@ -11,8 +11,8 @@ use `--file-types=less,htm,cshtml,cs,txt,Config,html,config,css,rb,asax,sql,js,s
 
 #### For inspecting iOS project
 
-use `--file-types=markdown,mdown,md,c,storyboard,d,mm,h,m,sh,cpp,strings`
+use `--file-types=markdown,mdown,md,c,storyboard,d,mm,h,m,sh,cpp,strings,rb,py`
 
 #### For inspecting Android project
 
-use `--file-types=xml,md,java,aidl,properties,gradle`
+use `--file-types=xml,md,java,aidl,properties,gradle,rb,py`
